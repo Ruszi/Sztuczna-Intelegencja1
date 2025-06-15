@@ -1,0 +1,54 @@
+Klasa Schedule do trzymania harmonogramu:
+Klasa Employee (opcjonalnie)
+Dla rozbudowy – np. dodanie preferencji:
+
+ Cel funkcji fitness
+Ocenić harmonogram wg:
+
+✅ Twardych ograniczeń (muszą być spełnione)
+Jeden pracownik może mieć tylko jedną zmianę dziennie
+
+Na każdej zmianie musi być określona liczba pracowników (np. min. 2, max. 3)
+
+💡 Miękkich preferencji (dobrze by było)
+Pracownik woli pracować rano
+
+Pracownik woli nie pracować w weekend
+
+Miękkie ograniczenia dają punkty dodatnie lub ujemne (np. +1 za preferowaną zmianę, -2 za pracę w weekend gdy ktoś nie chce).
+
+Klasa FitnessEvaluator
+Dodajmy klasę, która oceni harmonogram:
+
+ Co robimy w algorytmie genetycznym?
+Inicjalizacja populacji – wiele losowych harmonogramów.
+
+Ocena dopasowania – funkcja fitness (już mamy!).
+
+Selekcja – wybieramy lepsze osobniki do krzyżowania.
+
+Krzyżowanie (crossover) – mieszamy dwa harmonogramy.
+
+Mutacja – zmieniamy losowo małe fragmenty, by szukać nowych rozwiązań.
+
+Iteracja – powtarzamy, aż znajdziemy dobre rozwiązanie.
+Klasa GeneticAlgorithm
+
+
+
+ var parents = scored.Take(_populationSize / 2).Select(x => x.Schedule).ToList();// sprawdzić czemu 2 
+ wytłumaczenie tej linijki czemu dziele przez 2 
+ Selekcja elitarna:
+Wcześniej populacja została posortowana malejąco według przystosowania (fitness), więc scored zawiera harmonogramy od najlepszego do najgorszego.
+Take(_populationSize / 2) wybiera 50% najlepszych harmonogramów z bieżącej populacji. Te harmonogramy stają się rodzicami dla nowego pokolenia.
+
+Zachowanie najlepszych osobników:
+Dzieląc przez 2, ograniczam pulę rodziców do najbardziej przystosowanych, co przyspiesza zbieżność algorytmu (unikam "rozmycia" dobrych rozwiązań przez słabe osobniki).
+Równowaga między eksploracją a eksploatacją:
+
+Eksploatacja: Wybór tylko najlepszych rodziców zwiększa presję selekcyjną (algorytm skupia się na ulepszaniu istniejących rozwiązań).
+
+Eksploracja: Mimo to, krzyżowanie i mutacje wprowadzają nowe warianty, zachowując różnorodność.
+
+
+Gdybyś nie dzieliłam przez 2 (Take(_populationSize)), wszystkie harmonogramy (nawet te słabe) miałyby szansę zostać rodzicami, co mogłoby spowolnić optymalizację.

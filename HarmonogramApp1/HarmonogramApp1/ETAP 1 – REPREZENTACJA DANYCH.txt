@@ -1,0 +1,111 @@
+ ETAP 1 – REPREZENTACJA DANYCH
+📦 Chromosom (osobnik w GA)
+Może być dwuwymiarową tablicą:
+int[days, employees] – gdzie komórka oznacza np. zmianę, w której pracuje dany pracownik danego dnia.
+
+Lub trójwymiar: int[days, shifts, employees]
+Każda komórka 1 lub 0, oznaczająca czy dany pracownik pracuje na danej zmianie danego dnia.
+Dodano nową wersję Randomize, która uwzględnia preferencje pracownika:
+
+la każdej zmiany losowo wybiera pracowników,
+
+Ale odrzuca tych, którzy mają:
+
+UnpreferredShifts zawierającą daną zmianę,
+
+UnpreferredDays zawierający dany dzień.
+
+ETAP 2 – FUNKCJA DOPASOWANIA (fitness)
+✅ Wymagania twarde (konieczne):
+Jeden pracownik = jedna zmiana dziennie.
+
+Każda zmiana ma określoną liczbę pracowników (np. min. 2, max. 4).
+
+Nieprzestrzeganie = duża kara lub odrzucenie chromosomu.
+
+🎯 Preferencje miękkie (opcjonalne):
+Ktoś woli nie pracować w weekend.
+
+Ktoś chce tylko ranną zmianę.
+
+Fitness = liczba spełnionych twardych wymagań + liczba spełnionych preferencji – kara za złamanie.
+ 
+ Zmieniono sygnaturę metody:
+ Zamiast używać stałych MinEmployeesPerShift i MaxEmployeesPerShift, metoda:
+
+Sprawdza dla każdej zmiany, ilu pracowników oczekuje pracodawca (z obiektu EmployerRequirements).
+
+Karze lub nagradza zgodnie z tą liczbą.
+
+
+ ETAP 3 – ALGORYTM GENETYCZNY (C#)
+🔢 Główne kroki:
+Inicjalizacja populacji (losowe harmonogramy)
+
+Ocena funkcji dopasowania
+
+Selekcja – np. turniejowa
+
+Krzyżowanie (crossover) – np. wymiana dni/pracowników między chromosomami
+
+Mutacja – np. zamiana zmian dla jednego pracownika
+
+Nowa generacja
+
+Powtarzanie aż do satysfakcjonującego rozwiązania
+ ETAP 5 – DANE TESTOWE
+Potrzebujesz danych wejściowych – np.:
+
+Lista pracowników
+
+Preferencje (np. JSON lub CSV)
+
+Liczba zmian dziennie, długość harmonogramu (dni)
+Nauka i przykłady:
+"A Genetic Algorithm for Staff Scheduling Problem"
+
+Szukaj fraz: employee scheduling genetic algorithm, nurse rostering problem
+
+
+zmienić na jakiś parametr take 2 
+
+życenie pracodawców ile on chcę mieć na zmiane 
+życzen ine pracowników 
+
+optymalizacji przy pomocy sieci neuronowych 
+
+Klasa FileHelper 
+przechowuje potrzebe rzeczy do zapisywania w pliku txt
+
+FitnessEvaluator ocenia jakość danego harmonogramu (czyli rozwiązania problemu).
+
+
+druga funkcja fitnes takiej postaci ze f = a * suma (róznic międz ilością pracowników ile pracodawca chciał )
++ (1-a) * suma (takich setuacji gdzie pracodawca nie chciał a dostał)
+
+Sieci neuronowe zrobić - zostosować do projektu jakoś polączyć 
+algorytm gen + sieć neuronowym  zeby wykorzystała sieć co algorytmgenetyczny to znalazł 
+
+Plik .csv
+
+
+Wyjaśnienie nowej funkcji fitness
+Parametr alpha: Określa wagę między dwoma składnikami funkcji fitness (domyślnie 0.5).
+
+Pierwszy składnik (differenceSum):
+
+Oblicza sumę absolutnych różnic między wymaganą a rzeczywistą liczbą pracowników na każdej zmianie
+
+Im większa różnica, tym większa kara
+
+Drugi składnik (unwantedSituations):
+
+Zlicza przypadki, gdy pracownik jest przypisany do zmiany, której nie chce
+
+Każda taka sytuacja zwiększa karę
+
+Normalizacja wyniku:
+
+Wynik jest przekształcany tak, aby większa wartość oznaczała lepsze rozwiązanie
+
+Maksymalna możliwa kara jest odejmowana od obliczonej wartości
