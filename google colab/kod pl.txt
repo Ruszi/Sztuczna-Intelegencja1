@@ -1,0 +1,259 @@
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+
+# Stałe odpowiadające kodowi w C#
+DAYS = 7 #liczba dni w tygodniu
+SHIFTS = 3 #liczba zmian dzienie 
+EMPLOYEES = 5  # liczba pracowników 
+
+class Employee:
+    def __init__(self, id, name):
+        self.id = id  # id pracowniwka
+        self.name = name #imię pracownika
+        self.preferred_shifts = [] #Preferowane zmiany pracownika
+        self.preferred_days = [] #Niepreferowane dni pracownika 
+        self.unpreferred_shifts = [] #niepreferowane zmiany  pracownika 
+        self.unpreferred_days = [] # niepreferowane dni pracownika 
+        self.preferred_coworkers = {}  # Słownik preferowanych współpracowników: (dzień, zmiana) -> liczba
+
+
+
+class EmployerRequirements:
+    def __init__(self):
+        self.required_employees_per_shift = {}# Wymagana liczba pracowników na zmianę
+    
+
+    #"""Pobiera wymaganą liczbę pracowników dla danej zmiany w danym dniu"""
+    def get_required(self, day, shift):
+        return self.required_employees_per_shift.get((day, shift), 2)
+    
+    #        """Generuje losowe wymagania dotyczące liczby pracowników"""
+    def generate_random_requirements(self, days, shifts, min_employees=1, max_employees=3):
+        for d in range(days):
+            for s in range(shifts):
+                self.required_employees_per_shift[(d, s)] = np.random.randint(min_employees, max_employees + 1)
+#    """Generuje syntetyczne dane treningowe na podstawie logiki planowania"""
+def generate_sample_data(num_samples=10000):
+    """Generate synthetic training data based on your scheduling logic"""
+    X = [] ## Dane wejściowe (cechy)
+    y = [] # Dane wejściowe (cechy)
+    
+    for _ in range(num_samples):
+                # Tworzenie losowych pracowników z preferencjami
+        employees = []
+        for i in range(EMPLOYEES):
+            emp = Employee(i, f"Employee {i+1}")
+            
+            # Losownie preferencji 
+            emp.preferred_shifts = list(np.random.choice(range(SHIFTS), np.random.randint(1, SHIFTS)))
+            emp.preferred_days = list(np.random.choice(range(DAYS), np.random.randint(1, DAYS)))
+            emp.unpreferred_shifts = list(np.random.choice(range(SHIFTS), np.random.randint(0, SHIFTS)))
+            emp.unpreferred_days = list(np.random.choice(range(DAYS), np.random.randint(0, DAYS)))
+            
+           # Losowi preferowani współpracownicy
+            for d in range(DAYS):
+                for s in range(SHIFTS):
+                    if np.random.random() < 0.3:  # 30% szans na preferencję
+                        emp.preferred_coworkers[(d, s)] = np.random.randint(1, 4)
+            
+            employees.append(emp)
+        
+        # Tworzenie wymagań pracodawcy
+        requirements = EmployerRequirements()
+        requirements.generate_random_requirements(DAYS, SHIFTS)
+        
+        # Generowanie losowego harmonogramu
+        schedule = np.zeros((DAYS, SHIFTS, EMPLOYEES))
+        for d in range(DAYS):
+            for s in range(SHIFTS):
+                required = requirements.get_required(d, s)
+                candidates = [e.id for e in employees 
+                            if d not in e.unpreferred_days 
+                            and s not in e.unpreferred_shifts]
+                
+                if len(candidates) >= required:
+                    selected = np.random.choice(candidates, required, replace=False)
+                    for emp_id in selected:
+                        schedule[d, s, emp_id] = 1
+        
+                # Tworzenie cech wejściowych
+        features = []
+        
+           # 1. Dostępność pracowników (0 lub 1 dla każdego dzień-zmiana-pracownik)
+        features.extend(schedule.flatten())
+                # 2. Preferencje pracowników (preferowane dni i zmiany)
+        for emp in employees:
+            emp_prefs = np.zeros(DAYS + SHIFTS)
+            for d in emp.preferred_days:
+                emp_prefs[d] = 1
+            for s in emp.preferred_shifts:
+                emp_prefs[DAYS + s] = 1
+            features.extend(emp_prefs)
+        
+        # 3. Wymagania pracodawcy
+        req_features = []
+        for d in range(DAYS):
+            for s in range(SHIFTS):
+                req_features.append(requirements.get_required(d, s))
+        features.extend(req_features)
+        
+           # 4. Preferowani współpracownicy
+        coworker_prefs = np.zeros((DAYS, SHIFTS, EMPLOYEES))
+        for emp in employees:
+            for (d, s), count in emp.preferred_coworkers.items():
+                coworker_prefs[d, s, emp.id] = count
+        features.extend(coworker_prefs.flatten())
+        
+        X.append(features)
+        
+            # Obliczanie wyniku fitness (cel)
+        fitness = evaluate_fitness(schedule, employees, requirements)
+        y.append(fitness)
+    
+    return np.array(X), np.array(y)
+#    """Implementacja logiki oceny jakości harmonogramu w Pythonie"""
+def evaluate_fitness(schedule, employees, requirements):
+    """Reimplementation of your fitness evaluation logic in Python"""
+    score = 0
+    
+     # Stałe z kodu C#
+    WEIGHT_FOR_PERFECT_EMPLOYEE_COUNT = 20      # Nagroda za idealną liczbę pracowników
+    PENALTY_FOR_TOO_FEW_EMPLOYEES = -100        # Kara za zbyt mało pracowników
+    PENALTY_FOR_TOO_MANY_EMPLOYEES = -50        # Kara za zbyt wielu pracowników
+    PENALTY_FOR_MULTIPLE_SHIFTS_PER_DAY = -100  # Kara za wiele zmian w jednym dniu
+    REWARD_FOR_PREFERRED_SHIFT = 5              # Nagroda za preferowaną zmianę
+    REWARD_FOR_PREFERRED_DAY = 5                # Nagroda za preferowany dzień
+    PENALTY_FOR_UNPREFERRED_SHIFT = -50         # Kara za niepreferowaną zmianę
+    PENALTY_FOR_UNPREFERRED_DAY = -50           # Kara za niepreferowany dzień
+    PENALTY_FOR_FORBIDDEN_ASSIGNMENT = -100     # Kara za niedozwolone przypisanie
+    
+
+    
+       # 1. Ocena liczby pracowników
+    for d in range(DAYS):
+        for s in range(SHIFTS):
+            count = np.sum(schedule[d, s, :])
+            required = requirements.get_required(d, s)
+            
+            if count < required:
+                score += PENALTY_FOR_TOO_FEW_EMPLOYEES
+            elif count > required:
+                score += PENALTY_FOR_TOO_MANY_EMPLOYEES
+            else:
+                score += WEIGHT_FOR_PERFECT_EMPLOYEE_COUNT
+    
+  # 2. Ocena preferencji pracowników
+    for emp in employees:
+        for d in range(DAYS):
+            for s in range(SHIFTS):
+                if schedule[d, s, emp.id] == 1:
+                    # Nagrody za preferencje
+                    if s in emp.preferred_shifts:
+                        score += REWARD_FOR_PREFERRED_SHIFT
+                    if d in emp.preferred_days:
+                        score += REWARD_FOR_PREFERRED_DAY
+                    
+                                        # Kary za niepreferowane
+                    if s in emp.unpreferred_shifts:
+                        score += PENALTY_FOR_UNPREFERRED_SHIFT
+                    if d in emp.unpreferred_days:
+                        score += PENALTY_FOR_UNPREFERRED_DAY
+                    
+                        # Dodatkowa kara jeśli wymagane ale pracownik nie chce
+                    required = requirements.get_required(d, s)
+                    if required > 0 and (d in emp.unpreferred_days or s in emp.unpreferred_shifts):
+                        score += PENALTY_FOR_FORBIDDEN_ASSIGNMENT
+    
+        # 3. Ocena zasad zmian (brak wielu zmian jednego dnia)
+    for d in range(DAYS):
+        for emp in employees:
+            shifts_worked = np.sum(schedule[d, :, emp.id])
+            if shifts_worked > 1:
+                score += PENALTY_FOR_MULTIPLE_SHIFTS_PER_DAY
+    
+    return score
+
+def build_model(input_shape):
+    """Build the neural network model"""
+    model = keras.Sequential([
+        layers.Dense(256, activation='relu', input_shape=(input_shape,)),
+        layers.BatchNormalization(),# Normalizacja wsadowa
+        layers.Dropout(0.3),#Dropout dla zapobiegania przeuczeniu 
+        layers.Dense(128, activation='relu'),
+        layers.BatchNormalization(),
+        layers.Dropout(0.3),
+        layers.Dense(64, activation='relu'),
+        layers.Dense(1)  # Wyjście - pojedynczy wynik fitness
+    ])
+    
+    model.compile(
+        optimizer=keras.optimizers.Adam(learning_rate=0.001),
+        loss='mse',# Błąd średniokwadratowy
+        metrics=['mae'] # Średni błąd absolutny
+    )
+    
+    return model
+#"""Normalizuje cechy i dzieli dane na zbiór treningowy i testowy"""
+def preprocess_data(X, y):
+    """Normalize features and split into train/test sets"""
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+# Podział danych
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_scaled, y, test_size=0.2, random_state=42)
+    
+    return X_train, X_test, y_train, y_test, scaler
+
+# Główna część programu
+if __name__ == "__main__":
+ # Generowanie lub wczytywanie danych
+    print("Generating training data...")
+    X, y = generate_sample_data(50000) # Generuje 50,000 próbek
+    
+    print("Przetwarzanie wstępne danych...")
+    X_train, X_test, y_train, y_test, scaler = preprocess_data(X, y)
+    
+    print("Budowanie modelu...")
+    model = build_model(X_train.shape[1])
+    
+    print("Trenowanie modelu...")
+    history = model.fit(
+        X_train, y_train,
+        epochs=50,# Liczba epok
+        batch_size=64,# Rozmiar batcha
+        validation_split=0.2,# 20% danych do walidacji
+        verbose=1
+    )
+    
+       # Ocena modelu
+    print("Ocenianie modelu...")
+    test_loss, test_mae = model.evaluate(X_test, y_test, verbose=0)
+    print(f"\nTest MAE: {test_mae:.2f}")
+    
+        # Wykres historii treningu
+    plt.plot(history.history['mae'], label='Training MAE')
+    plt.plot(history.history['val_mae'], label='Validation MAE')
+    plt.xlabel('Epoch')
+    plt.ylabel('Mean Absolute Error')
+    plt.legend()
+    plt.show()
+    
+        
+    # Zapis modelu do późniejszego użycia
+
+    model.save('scheduling_model.h5')
+    print("Model saved as scheduling_model.h5")
+    
+    # Przykład użycia modelu do predykcji fitness
+    print("\nExample prediction:")
+    example_input = X_test[0:1] # Pierwsza próbka testowa
+    predicted_fitness = model.predict(example_input)[0][0]
+    actual_fitness = y_test[0]
+    print(f"Predicted fitness: {predicted_fitness:.1f}, Actual fitness: {actual_fitness}")

@@ -1,0 +1,68 @@
+Wyjaśnienie kodu do predykcji harmonogramów pracy
+Ten kod w Google Colab tworzy model uczenia maszynowego, który przewiduje jakość (fitness) harmonogramów pracy na podstawie różnych czynników. Oto szczegółowe wyjaśnienie:
+
+1. Struktura danych
+Employee: Klasa reprezentująca pracownika z preferencjami:
+
+preferred_shifts - preferowane zmiany
+
+preferred_days - preferowane dni
+
+unpreferred_shifts - niepreferowane zmiany
+
+unpreferred_days - niepreferowane dni
+
+preferred_coworkers - preferowani współpracownicy
+
+EmployerRequirements: Wymagania pracodawcy dotyczące liczby pracowników na zmianę
+
+2. Generowanie danych treningowych
+Funkcja generate_sample_data() tworzy syntetyczne dane:
+
+Tworzy losowych pracowników z losowymi preferencjami
+
+Generuje losowe wymagania pracodawcy
+
+Tworzy losowe harmonogramy
+
+Oblicza wynik fitness dla każdego harmonogramu
+
+3. Ocena harmonogramu (fitness)
+Funkcja evaluate_fitness() oblicza jakość harmonogramu na podstawie:
+
+Spełnienia wymagań pracodawcy (odpowiednia liczba pracowników)
+
+Preferencji pracowników (nagrody za spełnienie, kary za niespełnienie)
+
+Zasad (np. brak wielu zmian jednego dnia)
+
+4. Model uczenia maszynowego
+Sieć neuronowa z 3 warstwami ukrytymi (256, 128, 64 neurony)
+
+Funkcje aktywacji ReLU
+
+Warstwy BatchNormalization i Dropout dla lepszej generalizacji
+
+Wyjście: pojedyncza wartość (przewidywany fitness)
+
+5. Przebieg działania
+Generuje 50,000 przykładowych harmonogramów
+
+Dzieli dane na zbiór treningowy i testowy
+
+Trenuje model przez 50 epok
+
+Ewaluuje jakość modelu
+
+Zapisuje wytrenowany model do pliku
+
+Zastosowanie praktyczne
+Ten model mógłby być użyty do:
+
+Szybkiej oceny jakości proponowanych harmonogramów
+
+Znalezienia przybliżonych rozwiązań przed dokładną optymalizacją
+
+Wstępnego filtrowania złych harmonogramów
+
+Model uczy się przewidywać wynik funkcji fitness bez konieczności jej każdorazowego obliczania, co może przyspieszyć proces generowania harmonogramów.
